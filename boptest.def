@@ -16,10 +16,9 @@ From: ubuntu:20.04
     ln -s /Spawn-$SPAWN_VERSION-Linux/bin/spawn-$SPAWN_VERSION /usr/local/bin/ && \
     rm Spawn-$SPAWN_VERSION-Linux.tar.gz
 
-    # Create new user
-    useradd -ms /bin/bash user
+    # Manually set up user-like environment
     mkdir -p /home/user
-    chown user:user /home/user
+    chmod 755 /home/user
 
     # Install Miniconda and required Python packages
     su user -c "cd /home/user && \
