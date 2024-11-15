@@ -1,5 +1,5 @@
 Bootstrap: docker
-From: --platform=linux/x86_64 ubuntu:20.04
+From: ubuntu:20.04
 
 %post
     # Update and install required packages
