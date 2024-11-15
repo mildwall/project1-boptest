@@ -1,47 +1,46 @@
 Bootstrap: docker
-From: ubuntu:20.04
-
-%environment
-    export SPAWN_VERSION=0.3.0-8d93151657
-    export HOME=/home/user
-    export PYTHONPATH=$PYTHONPATH:$HOME
-    export BOPTEST_DASHBOARD_SERVER=https://dashboard.boptest.net/
+From: --platform=linux/x86_64 ubuntu:20.04
 
 %post
-    # Install required packages
+    # Update and install required packages
     apt-get update && \
-    apt-get install -y wget libgfortran4
+    apt-get install -y \
+        wget \
+        libgfortran4 && \
+    rm -rf /var/lib/apt/lists/*
 
     # Install Spawn
+    SPAWN_VERSION=0.3.0-8d93151657
     wget https://spawn.s3.amazonaws.com/custom/Spawn-$SPAWN_VERSION-Linux.tar.gz && \
     tar -xzf Spawn-$SPAWN_VERSION-Linux.tar.gz && \
-    ln -s /Spawn-$SPAWN_VERSION-Linux/bin/spawn-$SPAWN_VERSION /usr/local/bin/
+    ln -s /Spawn-$SPAWN_VERSION-Linux/bin/spawn-$SPAWN_VERSION /usr/local/bin/ && \
+    rm Spawn-$SPAWN_VERSION-Linux.tar.gz
 
     # Create new user
     useradd -ms /bin/bash user
-    chown -R user:user /home/user
+    mkdir -p /home/user
+    chown user:user /home/user
 
-    # Install Miniconda and pyfmi
-    cd /home/user && \
-    wget https://repo.anaconda.com/miniconda/Miniconda3-py310_24.3.0-0-Linux-x86_64.sh -O miniconda.sh && \
-    bash miniconda.sh -b -p /home/user/miniconda && \
-    /home/user/miniconda/bin/conda update -n base -c defaults conda -y && \
-    /home/user/miniconda/bin/conda create --name pyfmi3 python=3.10 -y && \
-    /home/user/miniconda/bin/conda install -n pyfmi3 -c conda-forge pyfmi=2.12 -y && \
-    /home/user/miniconda/bin/conda run -n pyfmi3 pip install flask-restful==0.3.9 werkzeug==2.2.3 pandas==1.5.3 flask_cors==3.0.10 scipy==1.13.0 matplotlib==3.7.1 requests==2.28.1
+    # Install Miniconda and required Python packages
+    su user -c "cd /home/user && \
+        wget https://repo.anaconda.com/miniconda/Miniconda3-py310_23.1.0-1-Linux-x86_64.sh -O /home/user/miniconda.sh && \
+        /bin/bash /home/user/miniconda.sh -b -p /home/user/miniconda && \
+        . /home/user/miniconda/bin/activate && \
+        conda update -n base -c defaults conda && \
+        conda create --name pyfmi3 python=3.10 -y && \
+        conda activate pyfmi3 && \
+        conda install -c conda-forge pyfmi=2.11 -y && \
+        pip install flask-restful==0.3.9 werkzeug==2.2.3 pandas==1.5.3 flask_cors==3.0.10 scipy==1.13.0 matplotlib==3.7.1 requests==2.28.1 && \
+        mkdir models && mkdir doc"
 
-    # Set up directories
-    mkdir -p /home/user/models /home/user/doc /home/user/data /home/user/forecast /home/user/kpis
+%environment
+    export HOME=/home/user
+    export PATH=$HOME/miniconda/bin:$PATH
+    export PYTHONPATH=$PYTHONPATH:$HOME
+    export BOPTEST_DASHBOARD_SERVER=https://dashboard.boptest.net/
 
-%files
-    testcases/bestest_air/models/wrapped.fmu /home/user/models/wrapped.fmu
-    testcases/bestest_air/doc/ /home/user/doc/
-    restapi.py /home/user/restapi.py
-    testcase.py /home/user/testcase.py
-    version.txt /home/user/version.txt
-    data/ /home/user/data/
-    forecast/ /home/user/forecast/
-    kpis/ /home/user/kpis/
+%startscript
+    . /home/user/miniconda/bin/activate && conda activate pyfmi3 && python /home/user/restapi.py && bash
 
 %runscript
-    exec /home/user/miniconda/bin/conda run -n pyfmi3 python /home/user/restapi.py
+    exec /bin/bash
