@@ -11,7 +11,7 @@ performance indicators.
 
 import numpy as np
 import pandas as pd
-from scipy.integrate import trapz
+from scipy.integrate import trapezoid as trapz
 from collections import OrderedDict
 
 class KPI_Calculator(object):
